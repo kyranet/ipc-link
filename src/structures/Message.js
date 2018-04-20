@@ -33,7 +33,7 @@ class Message {
 			 * The socket that sent this message
 			 * @name Message#socket
 			 * @since 0.0.1
-			 * @type {IPC.Socket}
+			 * @type {Socket}
 			 * @readonly
 			 */
 			socket: { value: socket },
@@ -63,7 +63,7 @@ class Message {
 	 * @param {boolean} [success] Whether the operation has been successful or not
 	 * @returns {Promise<Object<string, *>>}
 	 */
-	reply(data, success = true) {
+	reply(data, success = 'success' in data ? data.success : true) {
 		if (this._replied) {
 			return Promise.reject(`The request ${this.id} has already been replied and cannot be replied again.`);
 		}

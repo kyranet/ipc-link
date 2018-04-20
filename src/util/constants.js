@@ -1,5 +1,3 @@
-exports.defaults = { SERVER: { ipc: {} } };
-
 exports.events = {
 	// node-ipc events
 	CONNECT: 'connect',

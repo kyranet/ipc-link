@@ -8,6 +8,5 @@ module.exports = {
 	Message: require('./structures/Message'),
 
 	// Utils
-	util: require('./util/util'),
 	constants: require('./util/constants')
 };

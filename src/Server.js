@@ -2,14 +2,12 @@ const { events } = require('./util/constants');
 const Message = require('./structures/Message');
 const ipc = require('node-ipc');
 
-const hasKey = Object.prototype.hasOwnProperty;
-
 module.exports = class Server {
 
 	constructor(name, options) {
-		if (hasKey.call(options, 'ipc')) {
-			// Assign the configs
-			ipc.config = Object.assign(ipc.config, options.ipc);
+		// Assign the configs
+		if ('ipc' in options) {
+			ipc.config = { ...ipc.config, ...options.ipc, id: name };
 		} else {
 			ipc.config.id = name;
 		}
@@ -29,7 +27,7 @@ module.exports = class Server {
 			 * The promises
 			 * @name Server#_promises
 			 * @since 0.0.1
-			 * @type {Promise<string, { resolve: Function, reject: Function }>}
+			 * @type {Map<string, { resolve: Function, reject: Function }>}
 			 * @readonly
 			 * @private
 			 */
@@ -53,7 +51,7 @@ module.exports = class Server {
 		this.ipc = ipc;
 
 		// Initialize this server
-		this._init(options.path);
+		this._init(name);
 	}
 
 	/**
@@ -76,7 +74,7 @@ module.exports = class Server {
 	 */
 	async send(name, data = {}, success = true) {
 		if (!this.hasSocket(name)) await this.connectTo(name);
-		const requestID = hasKey.call(data, 'id') ? data.id : Server._generateID();
+		const requestID = 'id' in data ? data.id : Server._generateID();
 		return this._sendRequest(this.getSocket(name), {
 			id: requestID,
 			sentBy: this.name,
@@ -110,16 +108,18 @@ module.exports = class Server {
 	 * @since 0.0.1
 	 * @param {string} event The arguments to pass to the server's emitter
 	 * @param {Function} callback The callback to run in the server's emitter
-	 * @returns {NodeIPC.Client}
+	 * @returns {this}
 	 */
 	on(event, callback) {
 		if (event === events.MESSAGE) {
-			return ipc.server.on(event, (data) => {
-				callback(new Message(JSON.parse(data)));
+			ipc.server.on(event, (data, socket) => {
+				callback(new Message(this, socket, JSON.parse(data)));
 			});
+		} else {
+			ipc.server.on(event === events.RAW ? events.MESSAGE : event, callback);
 		}
-		if (event === events.RAW) event = events.MESSAGE;
-		return ipc.server.on(event, callback);
+
+		return this;
 	}
 
 	/**
@@ -127,24 +127,26 @@ module.exports = class Server {
 	 * @since 0.0.1
 	 * @param {string} event The arguments to pass to the server's emitter
 	 * @param {Function} callback The callback to run in the server's emitter
-	 * @returns {NodeIPC.Client}
+	 * @returns {this}
 	 */
 	once(event, callback) {
 		if (event === events.MESSAGE) {
-			return ipc.server.once(event, (data) => {
-				callback(new Message(JSON.parse(data)));
+			ipc.server.once(event, (data, socket) => {
+				callback(new Message(this, socket, JSON.parse(data)));
 			});
+		} else {
+			ipc.server.once(event === events.RAW ? events.MESSAGE : event, callback);
 		}
-		if (event === events.RAW) event = events.MESSAGE;
-		return ipc.server.once(event, callback);
+
+		return this;
 	}
 
 	/**
 	 * Start this Server
 	 * @since 0.0.1
-	 * @param {string} reason The reason to start
+	 * @param {string} [reason=''] The reason to start
 	 */
-	start(reason) {
+	start(reason = '') {
 		ipc.server.start();
 		if (this.listenerCount(events.START)) this.emit(events.START, reason);
 	}
@@ -152,9 +154,9 @@ module.exports = class Server {
 	/**
 	 * Stop this Server
 	 * @since 0.0.1
-	 * @param {string} reason The reason to stop
+	 * @param {string} [reason=''] The reason to stop
 	 */
-	stop(reason) {
+	stop(reason = '') {
 		ipc.server.stop();
 		if (this.listenerCount(events.STOP)) this.emit(events.STOP, reason);
 	}
