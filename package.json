@@ -1,0 +1,30 @@
+{
+  "name": "ipc-link",
+  "version": "0.0.1",
+  "description": "Connect multiple processes via IPC using node-ipc for backends",
+  "main": "src/index",
+  "scripts": {
+    "test": "npx eslint src"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/kyranet/ipc-link.git"
+  },
+  "keywords": [
+    "ipc-link",
+    "ipc",
+    "connection"
+  ],
+  "author": "kyraNET",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/kyranet/ipc-link/issues"
+  },
+  "homepage": "https://github.com/kyranet/ipc-link#readme",
+  "dependencies": {
+    "node-ipc": "^9.1.1"
+  },
+  "devDependencies": {
+    "eslint-config-klasa": "github:dirigeants/klasa-lint"
+  }
+}
