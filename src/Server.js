@@ -1,13 +1,16 @@
+const { EventEmitter } = require('events');
 const { events } = require('./util/constants');
 const Message = require('./structures/Message');
 const ipc = require('node-ipc');
 
-module.exports = class Server {
+module.exports = class Server extends EventEmitter {
 
 	constructor(name, options) {
+		super();
+
 		// Assign the configs
-		if ('ipc' in options) {
-			ipc.config = { ...ipc.config, ...options.ipc, id: name };
+		if (options) {
+			ipc.config = { ...ipc.config, ...options, id: name };
 		} else {
 			ipc.config.id = name;
 		}
@@ -87,10 +90,10 @@ module.exports = class Server {
 	 * Get a socket by its name
 	 * @since 0.0.1
 	 * @param {string} name The name of the socket
-	 * @returns {IPC.Socket}
+	 * @returns {Socket}
 	 */
 	getSocket(name) {
-		return ipc.of[name];
+		return (ipc.of[name] && ipc.of[name].socket) || null;
 	}
 
 	/**
@@ -111,12 +114,12 @@ module.exports = class Server {
 	 * @returns {this}
 	 */
 	on(event, callback) {
-		if (event === events.MESSAGE) {
-			ipc.server.on(event, (data, socket) => {
-				callback(new Message(this, socket, JSON.parse(data)));
-			});
-		} else {
-			ipc.server.on(event === events.RAW ? events.MESSAGE : event, callback);
+		const eventName = event === events.MESSAGE ? event : event === events.RAW ? events.MESSAGE : event;
+		const listener = event === events.MESSAGE ? (data, socket) => callback(new Message(this, socket, JSON.parse(data))) : callback;
+
+		if (!this.listenerCount(eventName)) {
+			super.on(eventName, listener);
+			ipc.server.on(eventName, this.emit.bind(this, eventName));
 		}
 
 		return this;
@@ -130,12 +133,12 @@ module.exports = class Server {
 	 * @returns {this}
 	 */
 	once(event, callback) {
-		if (event === events.MESSAGE) {
-			ipc.server.once(event, (data, socket) => {
-				callback(new Message(this, socket, JSON.parse(data)));
-			});
-		} else {
-			ipc.server.once(event === events.RAW ? events.MESSAGE : event, callback);
+		const eventName = event === events.MESSAGE ? event : event === events.RAW ? events.MESSAGE : event;
+		const listener = event === events.MESSAGE ? (data, socket) => callback(new Message(this, socket, JSON.parse(data))) : callback;
+
+		if (!this.listenerCount(eventName)) {
+			super.once(eventName, listener);
+			ipc.server.once(eventName, this.emit.bind(this, eventName));
 		}
 
 		return this;
@@ -145,20 +148,26 @@ module.exports = class Server {
 	 * Start this Server
 	 * @since 0.0.1
 	 * @param {string} [reason=''] The reason to start
+	 * @returns {this}
 	 */
 	start(reason = '') {
 		ipc.server.start();
 		if (this.listenerCount(events.START)) this.emit(events.START, reason);
+
+		return this;
 	}
 
 	/**
 	 * Stop this Server
 	 * @since 0.0.1
 	 * @param {string} [reason=''] The reason to stop
+	 * @returns {this}
 	 */
 	stop(reason = '') {
 		ipc.server.stop();
 		if (this.listenerCount(events.STOP)) this.emit(events.STOP, reason);
+
+		return this;
 	}
 
 	/**
@@ -178,8 +187,10 @@ module.exports = class Server {
 		}
 		this._sockets.clear();
 
+		this.removeAllListeners();
+
 		// Stop this server
-		this.stop();
+		if (this._ready) this.stop();
 	}
 
 	/**
@@ -190,6 +201,7 @@ module.exports = class Server {
 	 */
 	connectTo(name) {
 		return new Promise((resolve, reject) => {
+			let ignore = false;
 			ipc.connectTo(name, () => ipc.of[name]
 				.on('message', (data) => {
 					const parsed = JSON.parse(data);
@@ -199,11 +211,16 @@ module.exports = class Server {
 						promis[parsed.success ? 'resolve' : 'reject'](parsed);
 					}
 				})
+				.once('disconnect', () => {
+					if (!ignore) reject(`Could not connect to ${name}`);
+				})
 				.once('connect', () => {
+					ignore = true;
 					this._sockets.add(name);
 					resolve();
 				})
 				.once('destroy', () => {
+					ignore = true;
 					this._sockets.delete(name);
 					reject();
 				})
@@ -212,19 +229,16 @@ module.exports = class Server {
 	}
 
 	_sendRequest(socket, data) {
-		this.client.server.emit(socket, 'message', JSON.stringify(data));
-		this._replied = true;
-
 		return new Promise((resolve, reject) => {
-			this.promises.set(data.id, { resolve, reject });
+			ipc.server.emit(socket, 'message', JSON.stringify(data));
+			this._promises.set(data.id, { resolve, reject });
 		});
 	}
 
-	_init(path) {
+	_init() {
 		if (this._ready) return;
 
-		ipc.serve(path);
-		this.start();
+		ipc.serve();
 	}
 
 	static _generateID() {

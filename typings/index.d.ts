@@ -1,10 +1,11 @@
-import { Socket } from "net";
+import { Socket } from 'net';
+import { EventEmitter } from 'events';
 
 declare module 'ipc-link' {
 
 	export const version: string;
 
-	export class Server {
+	export class Server extends EventEmitter {
 		public constructor(name: string, options?: IPCConfigs);
 		public ipc: Client;
 		public name: string;
@@ -21,7 +22,6 @@ declare module 'ipc-link' {
 		public connectTo(name: string): Promise<void>;
 
 		// node-ipc events
-		public on(event: string, callback: (...args: any[]) => void): this;
 		public on(event: 'error', callback: (err: any) => void): this;
 		public on(event: 'connect' | 'disconnect' | 'destroy', callback: () => void): this;
 		public on(event: 'socket.disconnected', callback: (socket: Socket, destroyedSocketID: string) => void): this;
@@ -31,6 +31,7 @@ declare module 'ipc-link' {
 		public on(event: 'message', callback: (message: Message) => void): this;
 		public on(event: 'ready', callback: () => void): this;
 		public on(event: 'start' | 'stop', callback: (reason: string) => void): this;
+		public on(event: string, callback: (...args: any[]) => void): this;
 
 		// node-ipc events
 		public once(event: string, callback: (...args: any[]) => void): this;
@@ -43,6 +44,7 @@ declare module 'ipc-link' {
 		public once(event: 'message', callback: (message: Message) => void): this;
 		public once(event: 'ready', callback: () => void): this;
 		public once(event: 'start' | 'stop', callback: (reason: string) => void): this;
+		public once(event: string, callback: (...args: any[]) => void): this;
 
 		private _sendRequest<T = ObjectLiteral<any>>(socket: Socket, data: ObjectLiteral<any>): Promise<T>;
 		private _init(path: string): void;

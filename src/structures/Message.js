@@ -45,7 +45,7 @@ class Message {
 			 * @type {boolean}
 			 * @private
 			 */
-			_replied: { value: false, configurable: true }
+			_replied: { value: false, writable: true }
 		});
 
 		/**
@@ -68,7 +68,7 @@ class Message {
 			return Promise.reject(`The request ${this.id} has already been replied and cannot be replied again.`);
 		}
 		this._replied = true;
-		return this.client._sendRequest(this.socket, { success, ...data });
+		return this.client._sendRequest(this.socket, { success, id: this.id, ...data });
 	}
 
 }
