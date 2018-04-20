@@ -72,16 +72,14 @@ module.exports = class Server extends EventEmitter {
 	 * @since 0.0.1
 	 * @param {string} name The name of the channel to send the message to
 	 * @param {Object<string, *>} data The data to send to the socket
-	 * @param {boolean} success Whether this action has been successful or not
 	 * @returns {Promise<Object<string, *>>}
 	 */
-	async send(name, data = {}, success = true) {
+	async send(name, data = {}) {
 		if (!this.hasSocket(name)) await this.connectTo(name);
 		const requestID = 'id' in data ? data.id : Server._generateID();
 		return this._sendRequest(this.getSocket(name), {
 			id: requestID,
 			sentBy: this.name,
-			success,
 			data
 		});
 	}

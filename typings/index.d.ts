@@ -13,7 +13,7 @@ declare module 'ipc-link' {
 		private readonly _promises: Map<string, { resolve: Function, reject: Function }>;
 		private _ready: boolean;
 
-		public send<T = ObjectLiteral<any>>(name: string, data?: ObjectLiteral<any>, success?: boolean): Promise<T>;
+		public send<T = ObjectLiteral<any>>(name: string, data?: ObjectLiteral<any>): Promise<T>;
 		public getSocket(name: string): IPCServer;
 		public hasSocket(name: string): boolean;
 		public start(reason?: string): void;
