@@ -24,7 +24,7 @@ new Server('test-one', { retry: 1500, silent: true })
 	.catch(console.error);
 ```
 
-**Proccess Two**:
+**Process Two**:
 
 ```javascript
 const { Server } = require('../../src/index');
@@ -43,7 +43,7 @@ new Server('test-two', { retry: 1500, silent: true })
 
 It is important that you have a single `IPCLink.Server` instance because `node-ipc` is basically a singleton, and creating multiple instances of this may duplicate messages or corrupt the configuration. In a near future, `node-ipc` may get rewritten in a fork or in a `backends/` folder in this repository for further support with latest versions of Node.js (`new Buffer()` is being used, which is deprecated starting from Node.js 10).
 
-**Proccess One**
+**Process One**
 
 1. Let `server` be the result of evaluating `new Server(name, options);`.
 1. Consider there is a `message` event being listened in `server`.
@@ -76,7 +76,7 @@ It is important that you have a single `IPCLink.Server` instance because `node-i
 1. Perform `promiseCollection.set(id, queuePromise);`.
 1. Return `queuePromise`.
 
-**Proccess Two**
+**Process Two**
 
 1. Let `receiverServer` be the result of evaluating `new Server(name, options);` in the target process.
 1. Let `messagePayload` be the result of evaluating `JSON.parse(stringifiedData);`.
@@ -93,7 +93,7 @@ It is important that you have a single `IPCLink.Server` instance because `node-i
 1. Let `stringifiedResponseData` be the result of evaluating `JSON.stringify(finalizedResponseData);`.
 1. Perform `senderSocket.write`, sending `stringifiedResponseData` to the *Socket*.
 
-**Proccess One**
+**Process One**
 
 1. Let `parsedResponseData` be the result of evaluating `JSON.parse(stringifiedResponseData);`.
 1. Let `responseID` be the result of evaluating `parsedResponseData.id`.
